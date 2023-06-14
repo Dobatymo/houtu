@@ -10,7 +10,7 @@ Various implementations are included.
 
 ## Install
 
-- requires Python 3.7+
+- requires Python 3.8+
 - run `pip install houtu`
 
 ## Use
@@ -51,7 +51,7 @@ print(cities)
 |ReverseGeocodeKdLearn | 0.392 |
 |ReverseGeocodeKdScipy | 0.317 |
 
-### Batch of 5000
+### Batch of 100
 
 | class | time/s |
 | ----- | ------ |

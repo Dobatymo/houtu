@@ -190,9 +190,12 @@ def get_data(path: str) -> Cities:
     return Cities(arr, cities)
 
 
-def _check_input(arr: np.ndarray, in_form: str, out_form: str) -> np.ndarray:
-    if arr.ndim != 2 or arr.shape[-1] != 2 or arr.dtype != np.float32:
-        raise ValueError("Expected numpy array of radians with shape (x, 2) and dtype float32")
+def _check_input(arr: np.ndarray, k: int, in_form: str, out_form: str) -> np.ndarray:
+    if arr.ndim != 2 or arr.shape[0] < 1 or arr.shape[1] != 2 or arr.dtype != np.float32:
+        raise ValueError("Expected numpy array of radians with shape (x>0, 2) and dtype float32")
+
+    if k < 1:
+        raise ValueError(f"k must >= 1, not {k}")
 
     if in_form == out_form:
         pass
@@ -213,8 +216,8 @@ def _check_input(arr: np.ndarray, in_form: str, out_form: str) -> np.ndarray:
 
 def _select_cities(cities: List[City], indices: np.ndarray) -> List[List[City]]:
     out = []
-    for sample in indices:
-        out.append([cities[i] for i in sample])
+    for i in range(indices.shape[0]):
+        out.append([cities[idx] for idx in indices[i]])
     return out
 
 
@@ -243,9 +246,12 @@ class ReverseGeocodeKdScipy:
         ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
-        query_arr = _check_input(query_arr, form, "ecef")
+        query_arr = _check_input(query_arr, k, form, "ecef")
 
         distances, indices = self.tree.query(query_arr, k)
+        if k == 1:
+            distances = distances[..., None]
+            indices = indices[..., None]
         cities = _select_cities(self.cities, indices)
 
         coords = self.tree.data[indices].astype(np.float32)
@@ -284,7 +290,7 @@ class ReverseGeocodeKdLearn:
         ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
-        query_arr = _check_input(query_arr, form, "ecef")
+        query_arr = _check_input(query_arr, k, form, "ecef")
 
         if return_distance:
             distances, indices = self.tree.query(query_arr, k, return_distance)
@@ -327,17 +333,17 @@ class ReverseGeocodeBruteEuclidic:
         ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
-        query_arr = _check_input(query_arr, form, "ecef")
+        query_arr = _check_input(query_arr, k, form, "ecef")
 
-        distances = euclidean_distances(self.arr, query_arr, squared=True)
+        distances = euclidean_distances(query_arr, self.arr, squared=True)
 
-        indices = np.argpartition(distances, k, axis=0)[:k]
-        cities = _select_cities(self.cities, indices.T)
+        indices = np.argpartition(distances, range(k), axis=-1)[:, :k]
+        cities = _select_cities(self.cities, indices)
         if return_distance:
-            distances = np.take_along_axis(distances, indices, axis=0).T
+            distances = np.take_along_axis(distances, indices, axis=-1)
             distances = np.sqrt(distances)  # distance matrix is squared
 
-        coords = self.arr[indices.T]
+        coords = self.arr[indices]
         coords = WGS84.ecef2geodetic(coords)
         coords = coords[..., :2]  # ignore altitude
 
@@ -369,16 +375,18 @@ class ReverseGeocodeBruteHaversine:
         ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
-        query_arr = _check_input(query_arr, form, "radians")
+        query_arr = _check_input(query_arr, k, form, "radians")
 
-        distances = haversine_distances(self.arr, query_arr)
-        indices = np.argpartition(distances, k, axis=0)[:k]
-        cities = _select_cities(self.cities, indices.T)
+        distances = haversine_distances(query_arr, self.arr)
+        indices = np.argpartition(distances, range(k), axis=-1)[:, :k]
+        cities = _select_cities(self.cities, indices)
         if return_distance:
-            distances = np.take_along_axis(distances, indices, axis=0).T
+            distances = np.take_along_axis(distances, indices, axis=-1)
             distances *= self.radius
+            # print("brute", indices)
+            # print("brute", distances)
 
-        coords = self.arr[indices.T]
+        coords = self.arr[indices]
 
         if return_distance:
             return coords, distances, cities
@@ -411,7 +419,7 @@ class ReverseGeocodeBallHaversine:
         ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
-        query_arr = _check_input(query_arr, form, "radians")
+        query_arr = _check_input(query_arr, k, form, "radians")
 
         if return_distance:
             distances, indices = self.bt.query(query_arr, k, return_distance)
@@ -421,6 +429,8 @@ class ReverseGeocodeBallHaversine:
 
         if return_distance:
             distances *= self.radius
+            # print("ball", indices)
+            # print("ball", distances)
 
         coords = np.asarray(self.bt.data)
         assert self.bt.data.base is coords.base.obj.base, "array was copied"
