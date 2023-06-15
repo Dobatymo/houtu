@@ -81,3 +81,7 @@ geodesic euclidic {'mean_absolute_error': 976.628990753796, 'mean_relative_error
 ## Sources
 
 Cities database file `houtu/data/cities1000.txt.xz` is downloaded and recompressed from <http://download.geonames.org/export/dump/cities1000.zip> (Creative Commons Attribution 4.0 License).
+
+### GeoNames issues
+
+There are about 50 pairs of cities which have the exact same coordinates, for example `Fajã de Baixo` and `Rosto de Cão`.

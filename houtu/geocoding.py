@@ -1,6 +1,6 @@
 import csv
 import lzma
-from typing import List, Literal, NamedTuple, Optional, Tuple, overload
+from typing import List, Literal, NamedTuple, Optional, Set, Tuple, overload
 
 import numpy as np
 from importlib_resources import files
@@ -150,22 +150,34 @@ def toint(s: str) -> Optional[int]:
         return None
 
 
-def get_data(path: str) -> Cities:
+def get_data(path: str, keep_dups: bool = False) -> Cities:
     """Read data from tsv file. Expect the following columns:
 
     cols = ("geonameid", "name", "asciiname", "alternatenames", "latitude", "longitude", "feature class",
         "feature code", "country code", "cc2", "admin1 code", "admin2", "admin3", "admin4", "population",
         "elevation", "dem", "timezone", "modification date"
     )
+
+    When keep_dups is False (the default) cities with the exact same coordinates as a previous one are skipped.
+    This ensures more consistent results and should probably be fixed in the source data file.
     """
 
     with lzma.open(path, "rt", encoding="utf-8", newline="") as fr:
         lats = []
         lons = []
         cities = []
+
+        known: Set[Tuple[float, float]] = set()
         for row in csv.reader(fr, delimiter="\t", quoting=csv.QUOTE_NONE):
             lat = float(row[4])
             lon = float(row[5])
+
+            if not keep_dups:
+                if (lat, lon) in known:
+                    continue
+                else:
+                    known.add((lat, lon))
+
             city = City(
                 row[1],
                 row[6],
@@ -383,8 +395,6 @@ class ReverseGeocodeBruteHaversine:
         if return_distance:
             distances = np.take_along_axis(distances, indices, axis=-1)
             distances *= self.radius
-            # print("brute", indices)
-            # print("brute", distances)
 
         coords = self.arr[indices]
 
@@ -429,8 +439,6 @@ class ReverseGeocodeBallHaversine:
 
         if return_distance:
             distances *= self.radius
-            # print("ball", indices)
-            # print("ball", distances)
 
         coords = np.asarray(self.bt.data)
         assert self.bt.data.base is coords.base.obj.base, "array was copied"
