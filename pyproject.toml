@@ -27,8 +27,10 @@ dynamic = [
 dependencies = [
   "importlib-resources",
   "numpy",
+  "pynear>=0.1",
   "scikit-learn",
   "scipy>=1.6",
+  "vptree@ git+https://github.com/RickardSjogren/vptree.git",
 ]
 [project.optional-dependencies]
 optimize = [

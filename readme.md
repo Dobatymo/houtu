@@ -1,12 +1,12 @@
 # houtu
 
-Offline fast reverse geocoding. Named after the Chinese Goddess of the Earth Houtu.
+Offline fast reverse geocoding. Named after the Chinese Goddess of the Earth *Houtu*.
 
 Various implementations are included.
 - Naive computation of haversine distance matrix. Coordinates are not converted.
 - Using ball-tree with haversine metric. Coordinates are not converted.
-- Naive computation of euclidic distance matrix. Coordinates are converted from geodetic to ECEF and back.
-- Using kd-tree with euclidic metric. Coordinates are converted from geodetic to ECEF and back.
+- Naive computation of Euclidean distance matrix. Coordinates are converted from geodetic to ECEF and back.
+- Using kd-tree with Euclidean metric. Coordinates are converted from geodetic to ECEF and back.
 
 ## Install
 

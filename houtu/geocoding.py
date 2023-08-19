@@ -276,6 +276,101 @@ class ReverseGeocodeKdScipy:
             return coords, cities
 
 
+class ReverseGeocodeVpTreePython:
+    """https://github.com/RickardSjogren/vptree"""
+
+    @staticmethod
+    def _euclidean(p1, p2):
+        diff = p2[1] - p1[1]
+        return np.sqrt(np.sum(diff * diff, axis=-1))
+
+    def __init__(self, path: Optional[str] = None) -> None:
+        from vptree import VPTree
+
+        if path is None:
+            path = files(__package__).joinpath("data/cities1000.txt.xz")
+
+        arr, self.cities = get_data(path)
+        arr = WGS84.geodetic2ecef(arr)
+        assert arr.dtype == np.float32
+        arr_with_index = [(i, v) for i, v in zip(range(len(arr)), arr)]
+        self.tree = VPTree(arr_with_index, self._euclidean)
+
+    def query(self, query_arr, k=2, form="radians", return_distance=True):
+        query_arr = _check_input(query_arr, k, form, "ecef")
+
+        indices = []
+        coords = []
+        distances = []
+
+        for query in query_arr:
+            query = (0, query)
+            neighbors = self.tree.get_n_nearest_neighbors(query, k)
+            _distances, pairs = zip(*neighbors)
+            _indices, _coords = zip(*pairs)
+            indices.append(_indices)
+            coords.append(_coords)
+            distances.append(_distances)
+
+        indices = np.array(indices, dtype=np.int64)
+        coords = np.array(coords, dtype=np.float32)
+        distances = np.array(distances, dtype=np.float32)
+        cities = _select_cities(self.cities, indices)
+
+        coords = WGS84.ecef2geodetic(coords)
+        coords = coords[..., :2]  # ignore altitude
+
+        if return_distance:
+            return coords, distances, cities
+        else:
+            return coords, cities
+
+
+class ReverseGeocodeVpTreeSimd:
+    """https://github.com/pablocael/pynear"""
+
+    def __init__(self, path: Optional[str] = None) -> None:
+        from pynear import VPTreeL2Index
+
+        if path is None:
+            path = files(__package__).joinpath("data/cities1000.txt.xz")
+
+        arr, self.cities = get_data(path)
+        self.arr = WGS84.geodetic2ecef(arr)
+        assert arr.dtype == np.float32
+        self.tree = VPTreeL2Index()
+        self.tree.set(self.arr)
+
+    @overload
+    def query(
+        self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]:
+        ...
+
+    @overload
+    def query(
+        self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
+    ) -> Tuple[np.ndarray, List[List[City]]]:
+        ...
+
+    def query(self, query_arr, k=2, form="radians", return_distance=True):
+        query_arr = _check_input(query_arr, k, form, "ecef")
+
+        indices, distances = self.tree.searchKNN(query_arr, k)
+        indices = np.array(indices, dtype=np.int64)[:, ::-1]
+        distances = np.array(distances, dtype=np.float32)[:, ::-1]
+        cities = _select_cities(self.cities, indices)
+
+        coords = self.arr[indices]
+        coords = WGS84.ecef2geodetic(coords)
+        coords = coords[..., :2]  # ignore altitude
+
+        if return_distance:
+            return coords, distances, cities
+        else:
+            return coords, cities
+
+
 class ReverseGeocodeKdLearn:
     def __init__(self, path: Optional[str] = None) -> None:
         from sklearn.neighbors import KDTree

@@ -1,12 +1,11 @@
-from operator import itemgetter
 from typing import Dict
 
 import numpy as np
 from geopy.distance import geodesic
 from pymap3d.vincenty import vdist
 
-from houtu.geocoding import ReverseGeocodeBallHaversine, ReverseGeocodeKdScipy, earth_radii
-from houtu.utils import rand_lat_lon
+from houtu.geocoding import ReverseGeocodeBallHaversine, ReverseGeocodeKdScipy
+from houtu.utils import golden_section_search, rand_lat_lon
 
 
 def geodesic_distances(query_arr: np.ndarray, coords: np.ndarray) -> np.ndarray:
@@ -51,27 +50,31 @@ def measure_error_euclidic(rg, query_arr: np.ndarray, true_dist: np.ndarray) -> 
 
 if __name__ == "__main__":
     rg = ReverseGeocodeBallHaversine()
-    query_arr = rand_lat_lon(50000, "degrees")
-    coords, cities = rg.query(query_arr, k=2, form="degrees", return_distance=False)
-    coords = np.rad2deg(coords)
-    vincenty_dist = vincenty_distances(query_arr, coords)
-    geodesic_dist = geodesic_distances(query_arr, coords)
+    for _ in range(3):
+        query_arr = rand_lat_lon(50000, "degrees")
+        coords, cities = rg.query(query_arr, k=2, form="degrees", return_distance=False)
+        coords = np.rad2deg(coords)
+        vincenty_dist = vincenty_distances(query_arr, coords)
+        geodesic_dist = geodesic_distances(query_arr, coords)
 
-    true_dists = [("vincenty", vincenty_dist), ("geodesic", geodesic_dist)]
+        true_dists = [("vincenty", vincenty_dist), ("geodesic", geodesic_dist)]
 
-    for dist_name, true_dist in true_dists:
-        print(dist_name, "haversine")
-        results = {}
-        for name, radius in earth_radii.items():
-            errors = measure_error_haversine(rg, radius, query_arr, vincenty_dist)
-            for metric, error in errors.items():
-                results.setdefault(metric, {})[name] = error
+        # search
+        for dist_name, true_dist in true_dists:
+            for error_name in ["mean_relative_error", "mean_absolute_error"]:
+                print(dist_name, error_name)
 
-        for metric, errors in results.items():
-            name, error = min(errors.items(), key=itemgetter(1))
-            print(metric, name, error)
+                def func(radius: float) -> float:
+                    errors = measure_error_haversine(rg, radius, query_arr, true_dist)
+                    return errors[error_name]
 
-    for name, true_dist in true_dists:
-        rg = ReverseGeocodeKdScipy()
-        errors = measure_error_euclidic(rg, query_arr, true_dist)
-        print(name, "euclidic", errors)
+                a, b = 6000000, 7000000  # radius in meters
+                print(a, b, end="")
+                for a, b in golden_section_search(func, a, b, 0.1):  # search to a precision of 1mm
+                    print(f"\r{a} {b}", end="")
+                print()
+
+        for name, true_dist in true_dists:
+            rg = ReverseGeocodeKdScipy()
+            errors = measure_error_euclidic(rg, query_arr, true_dist)
+            print(name, "euclidic", errors)
