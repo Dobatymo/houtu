@@ -544,9 +544,9 @@ class ReverseGeocodeBallHaversine:
         else:
             return coords, cities
 
-    def lat_lon(self, lat: float, lon: float) -> Tuple[List[float], float, City]:
+    def lat_lon(self, lat: float, lon: float, form: str) -> Tuple[List[float], float, City]:
         query_arr = np.array([[lat, lon]], dtype=np.float32)
-        coords, distances, cities = self.query(query_arr, k=1)
+        coords, distances, cities = self.query(query_arr, 1, form, True)
         return coords[0, 0].tolist(), distances[0, 0], cities[0][0]
 
 
