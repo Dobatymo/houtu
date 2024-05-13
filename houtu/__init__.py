@@ -1,4 +1,4 @@
-""" Offline fast reverse geocoding. Named after the Chinese Goddess of the Earth Houtu. """
+"""Offline fast reverse geocoding. Named after the Chinese Goddess of the Earth Houtu."""
 
 from .geocoding import ReverseGeocode
 

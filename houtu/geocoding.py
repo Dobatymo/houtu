@@ -123,9 +123,7 @@ class WGS84:
                 Beta = -np.pi / 2
 
         # eqn. 13
-        eps = ((cls.B * u - cls.A * huE + E**2) * np.sin(Beta)) / (
-            cls.A * huE * 1 / np.cos(Beta) - E**2 * np.cos(Beta)
-        )
+        eps = ((cls.B * u - cls.A * huE + E**2) * np.sin(Beta)) / (cls.A * huE * 1 / np.cos(Beta) - E**2 * np.cos(Beta))
 
         Beta += eps
 
@@ -248,14 +246,12 @@ class ReverseGeocodeKdScipy:
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
-    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
 
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
-    ) -> Tuple[np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
         query_arr = _check_input(query_arr, k, form, "ecef")
@@ -344,14 +340,12 @@ class ReverseGeocodeVpTreeSimd:
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
-    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
 
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
-    ) -> Tuple[np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
         query_arr = _check_input(query_arr, k, form, "ecef")
@@ -387,14 +381,12 @@ class ReverseGeocodeKdLearn:
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
-    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
 
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
-    ) -> Tuple[np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
         query_arr = _check_input(query_arr, k, form, "ecef")
@@ -430,14 +422,12 @@ class ReverseGeocodeBruteEuclidic:
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
-    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
 
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
-    ) -> Tuple[np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
         query_arr = _check_input(query_arr, k, form, "ecef")
@@ -472,14 +462,12 @@ class ReverseGeocodeBruteHaversine:
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
-    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
 
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
-    ) -> Tuple[np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
         query_arr = _check_input(query_arr, k, form, "radians")
@@ -514,14 +502,12 @@ class ReverseGeocodeBallHaversine:
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
-    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
 
     @overload
     def query(
         self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
-    ) -> Tuple[np.ndarray, List[List[City]]]:
-        ...
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
         query_arr = _check_input(query_arr, k, form, "radians")

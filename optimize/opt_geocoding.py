@@ -65,12 +65,12 @@ if __name__ == "__main__":
                 print(dist_name, error_name)
 
                 def func(radius: float) -> float:
-                    errors = measure_error_haversine(rg, radius, query_arr, true_dist)
-                    return errors[error_name]
+                    errors = measure_error_haversine(rg, radius, query_arr, true_dist)  # noqa: B023
+                    return errors[error_name]  # noqa: B023
 
                 a, b = 6000000, 7000000  # radius in meters
                 print(a, b, end="")
-                for a, b in golden_section_search(func, a, b, 0.1):  # search to a precision of 1mm
+                for a, b in golden_section_search(func, a, b, 0.1):  # search to a precision of 1mm  # noqa: B020
                     print(f"\r{a} {b}", end="")
                 print()
 

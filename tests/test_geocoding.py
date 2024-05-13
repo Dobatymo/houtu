@@ -123,7 +123,7 @@ class ReverseGeocodeTest(unittest.TestCase):
             ("geo_hav2", self.geo_hav2),
         ]:
             with self.subTest(name=name):
-                coords, distances, cities = self.geo_hav2.query(large, 5)
+                coords, distances, cities = obj.query(large, 5)
                 np.testing.assert_allclose(coords_h1, coords)
                 self.assertEqual(cities_h1, cities)
                 np.testing.assert_allclose(distances_h1, distances)

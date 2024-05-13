@@ -5,11 +5,11 @@ on: [push]
 jobs:
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: 3.8
     - run: |
@@ -24,13 +24,13 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest, windows-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        os: [ubuntu-20.04, macos-12, windows-2019]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - run: |
@@ -41,11 +41,11 @@ jobs:
 
   deploy:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: 3.8
     - run: |

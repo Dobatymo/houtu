@@ -65,7 +65,8 @@ def golden_section_search(
 
     h = b - a
     if h <= tol:
-        return (a, b)
+        yield (a, b)
+        return
 
     invphi = (math.sqrt(5) - 1) / 2  # 1 / phi
     invphi2 = (3 - math.sqrt(5)) / 2  # 1 / phi^2
@@ -78,7 +79,7 @@ def golden_section_search(
     yc = func(c)
     yd = func(d)
 
-    for k in range(n - 1):
+    for _k in range(n - 1):
         if yc < yd:  # yc > yd to find the maximum
             b = d
             d = c
