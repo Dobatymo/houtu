@@ -1,3 +1,4 @@
+import logging
 import unittest
 from pathlib import Path
 
@@ -26,27 +27,36 @@ class ReverseGeocodeTest(unittest.TestCase):
         cls.geo_euc2 = cache(Path("cache/kd-learn"), serializer="pickle")(ReverseGeocodeKdLearn)()
         cls.geo_euc3 = cache(Path("cache/kd-scipy"), serializer="pickle")(ReverseGeocodeKdScipy)()
         cls.geo_euc4 = ReverseGeocodeVpTreeSimd()
-        cls.geo_euc5 = cache(Path("cache/vp-python"), serializer="pickle")(ReverseGeocodeVpTreePython)()
+        try:
+            cls.geo_euc5 = cache(Path("cache/vp-python"), serializer="pickle")(ReverseGeocodeVpTreePython)()
+        except ImportError as e:
+            logging.error("Skipping ReverseGeocodeVpTreePython: %s", e)
+            cls.geo_euc5 = None
+
+        cls.geo_all = [cls.geo_hav1, cls.geo_hav2, cls.geo_euc1, cls.geo_euc2, cls.geo_euc3, cls.geo_euc4]
+        if cls.geo_euc5 is not None:
+            cls.geo_all.append(("geo_euc5", cls.geo_euc5))
+
+        cls.geo_hav_2_to_n = [
+            ("geo_hav2", cls.geo_hav2),
+        ]
+
+        cls.geo_euc_2_to_n = [
+            ("geo_euc2", cls.geo_euc2),
+            ("geo_euc3", cls.geo_euc3),
+            ("geo_euc4", cls.geo_euc4),
+        ]
+        if cls.geo_euc5 is not None:
+            cls.geo_euc_2_to_n.append(("geo_euc5", cls.geo_euc5))
 
     def test_wrong_inputs(self):
         empty = np.zeros((0, 2), dtype=np.float32)
         wrongdim = np.zeros((2,), dtype=np.float32)
         wrongdtype = np.zeros((1, 2), dtype=np.int32)
         for arr in (empty, wrongdim, wrongdtype):
-            with self.assertRaises(ValueError):
-                coords_h1, distances_h1, cities_h1 = self.geo_hav1.query(arr)
-            with self.assertRaises(ValueError):
-                coords_h2, distances_h2, cities_h2 = self.geo_hav2.query(arr)
-            with self.assertRaises(ValueError):
-                coords_e1, distances_e1, cities_e1 = self.geo_euc1.query(arr)
-            with self.assertRaises(ValueError):
-                coords_e2, distances_e2, cities_e2 = self.geo_euc2.query(arr)
-            with self.assertRaises(ValueError):
-                coords_e3, distances_e3, cities_e3 = self.geo_euc3.query(arr)
-            with self.assertRaises(ValueError):
-                coords_e4, distances_e4, cities_e4 = self.geo_euc4.query(arr)
-            with self.assertRaises(ValueError):
-                coords_e5, distances_e5, cities_e5 = self.geo_euc5.query(arr)
+            for geo in self.geo_all:
+                with self.assertRaises(ValueError):
+                    geo.query(arr)
 
     def test_small(self):
         small = np.deg2rad(
@@ -84,7 +94,7 @@ class ReverseGeocodeTest(unittest.TestCase):
                     self.assertEqual(cities_h1[1][4].name, "Pasing")
                     self.assertEqual(cities_h1[2][4].name, "Brooklyn Heights")
 
-            for name, obj in [("geo_hav2", self.geo_hav2)]:
+            for name, obj in self.geo_hav_2_to_n:
                 coords, distances, cities = obj.query(small, k)
                 with self.subTest(k=k, name=name, out="coords", coords_h1=coords_h1, coords=coords):
                     np.testing.assert_allclose(coords_h1, coords)
@@ -99,12 +109,7 @@ class ReverseGeocodeTest(unittest.TestCase):
             with self.subTest(k=k, name="geo_euc1", out="cities", cities_h1=cities_h1, cities_e1=cities_e1):
                 self.assertEqual(cities_h1, cities_e1)
 
-            for name, obj in [
-                ("geo_euc2", self.geo_euc2),
-                ("geo_euc3", self.geo_euc3),
-                ("geo_euc4", self.geo_euc4),
-                ("geo_euc5", self.geo_euc5),
-            ]:
+            for name, obj in self.geo_euc_2_to_n:
                 coords, distances, cities = obj.query(small, k)
                 with self.subTest(k=k, name=name, out="coords", coords_e1=coords_e1, coords=coords):
                     np.testing.assert_allclose(coords_e1, coords)
@@ -119,9 +124,7 @@ class ReverseGeocodeTest(unittest.TestCase):
         with self.subTest(name="geo_hav1"):
             coords_h1, distances_h1, cities_h1 = self.geo_hav1.query(large, 5)
 
-        for name, obj in [
-            ("geo_hav2", self.geo_hav2),
-        ]:
+        for name, obj in self.geo_hav_2_to_n:
             with self.subTest(name=name):
                 coords, distances, cities = obj.query(large, 5)
                 np.testing.assert_allclose(coords_h1, coords)
@@ -133,12 +136,7 @@ class ReverseGeocodeTest(unittest.TestCase):
             # assert np.allclose(coords_h1, coords_e1)  # fails
             # self.assertEqual(cities_h1, cities_e1)  # fails
 
-        for name, obj in [
-            ("geo_euc2", self.geo_euc2),
-            ("geo_euc3", self.geo_euc3),
-            ("geo_euc4", self.geo_euc4),
-            ("geo_euc5", self.geo_euc5),
-        ]:
+        for name, obj in self.geo_euc_2_to_n:
             with self.subTest(name=name):
                 coords, distances, cities = obj.query(large, 5)
                 np.testing.assert_allclose(coords_e1, coords)

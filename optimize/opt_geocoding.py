@@ -4,7 +4,7 @@ import numpy as np
 from geopy.distance import geodesic
 from pymap3d.vincenty import vdist
 
-from houtu.geocoding import ReverseGeocodeBallHaversine, ReverseGeocodeKdScipy
+from houtu.geocoding import ReverseGeocodeBallHaversine, ReverseGeocodeBase, ReverseGeocodeKdScipy
 from houtu.utils import golden_section_search, rand_lat_lon
 
 
@@ -27,19 +27,8 @@ def vincenty_distances(query_arr: np.ndarray, coords: np.ndarray) -> np.ndarray:
     return vincenty_dist
 
 
-def measure_error_haversine(rg, radius: float, query_arr: np.ndarray, true_dist: np.ndarray) -> Dict[str, float]:
-    rg.radius = radius
-    coords, distances, cities = rg.query(query_arr, k=2, form="degrees")
-    diff = np.abs(distances - true_dist)
-
-    return {
-        "mean_absolute_error": np.mean(diff).item(),
-        "mean_relative_error": np.mean(diff / true_dist).item(),
-    }
-
-
-def measure_error_euclidic(rg, query_arr: np.ndarray, true_dist: np.ndarray) -> Dict[str, float]:
-    coords, distances, cities = rg.query(query_arr, k=2, form="degrees")
+def measure_error(rg: ReverseGeocodeBase, query_arr: np.ndarray, true_dist: np.ndarray) -> Dict[str, float]:
+    coords, distances, cities = rg.query(query_arr, k=2, form="degrees", return_distance=True)
     diff = np.abs(distances - true_dist)
 
     return {
@@ -49,10 +38,10 @@ def measure_error_euclidic(rg, query_arr: np.ndarray, true_dist: np.ndarray) -> 
 
 
 if __name__ == "__main__":
-    rg = ReverseGeocodeBallHaversine()
+    rg_haversine = ReverseGeocodeBallHaversine()
     for _ in range(3):
         query_arr = rand_lat_lon(50000, "degrees")
-        coords, cities = rg.query(query_arr, k=2, form="degrees", return_distance=False)
+        coords, cities = rg_haversine.query(query_arr, k=2, form="degrees", return_distance=False)
         coords = np.rad2deg(coords)
         vincenty_dist = vincenty_distances(query_arr, coords)
         geodesic_dist = geodesic_distances(query_arr, coords)
@@ -65,7 +54,8 @@ if __name__ == "__main__":
                 print(dist_name, error_name)
 
                 def func(radius: float) -> float:
-                    errors = measure_error_haversine(rg, radius, query_arr, true_dist)  # noqa: B023
+                    rg_haversine.radius = radius  # noqa: B023
+                    errors = measure_error(rg_haversine, query_arr, true_dist)  # noqa: B023
                     return errors[error_name]  # noqa: B023
 
                 a, b = 6000000, 7000000  # radius in meters
@@ -75,6 +65,6 @@ if __name__ == "__main__":
                 print()
 
         for name, true_dist in true_dists:
-            rg = ReverseGeocodeKdScipy()
-            errors = measure_error_euclidic(rg, query_arr, true_dist)
+            rg_euclidic = ReverseGeocodeKdScipy()
+            errors = measure_error(rg_euclidic, query_arr, true_dist)
             print(name, "euclidic", errors)

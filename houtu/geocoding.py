@@ -117,7 +117,7 @@ class WGS84:
             Beta = np.arctan(huE / u * z / np.hypot(x, y))
         except ZeroDivisionError:
             raise
-            if z >= 0:
+            if z >= 0:  # type: ignore[unreachable]
                 Beta = np.pi / 2
             else:
                 Beta = -np.pi / 2
@@ -144,8 +144,7 @@ class WGS84:
 def toint(s: str) -> Optional[int]:
     if s:
         return int(s)
-    else:
-        return None
+    return None
 
 
 def get_data(path: str, keep_dups: bool = False) -> Cities:
@@ -231,7 +230,27 @@ def _select_cities(cities: List[City], indices: np.ndarray) -> List[List[City]]:
     return out
 
 
-class ReverseGeocodeKdScipy:
+class ReverseGeocodeBase:
+    cities: List[City]
+
+    def __init__(self, path: Optional[str] = None) -> None:
+        pass
+
+    @overload
+    def query(
+        self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
+
+    @overload
+    def query(
+        self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
+
+    def query(self, query_arr, k=2, form="radians", return_distance=True):
+        raise NotImplementedError
+
+
+class ReverseGeocodeKdScipy(ReverseGeocodeBase):
     def __init__(self, path: Optional[str] = None) -> None:
         from scipy.spatial import KDTree
 
@@ -272,7 +291,7 @@ class ReverseGeocodeKdScipy:
             return coords, cities
 
 
-class ReverseGeocodeVpTreePython:
+class ReverseGeocodeVpTreePython(ReverseGeocodeBase):
     """https://github.com/RickardSjogren/vptree"""
 
     @staticmethod
@@ -290,7 +309,21 @@ class ReverseGeocodeVpTreePython:
         arr = WGS84.geodetic2ecef(arr)
         assert arr.dtype == np.float32
         arr_with_index = [(i, v) for i, v in zip(range(len(arr)), arr)]
-        self.tree = VPTree(arr_with_index, self._euclidean)
+        try:
+            self.tree = VPTree(arr_with_index, self._euclidean)
+        except ValueError as e:
+            if str(e).startswith("setting an array element with a sequence"):
+                raise ImportError("vptree version is too old. currently git master branch is required")
+
+    @overload
+    def query(
+        self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[True]
+    ) -> Tuple[np.ndarray, np.ndarray, List[List[City]]]: ...
+
+    @overload
+    def query(
+        self, query_arr: np.ndarray, k: int, form: str, return_distance: Literal[False]
+    ) -> Tuple[np.ndarray, List[List[City]]]: ...
 
     def query(self, query_arr, k=2, form="radians", return_distance=True):
         query_arr = _check_input(query_arr, k, form, "ecef")
@@ -322,7 +355,7 @@ class ReverseGeocodeVpTreePython:
             return coords, cities
 
 
-class ReverseGeocodeVpTreeSimd:
+class ReverseGeocodeVpTreeSimd(ReverseGeocodeBase):
     """https://github.com/pablocael/pynear"""
 
     def __init__(self, path: Optional[str] = None) -> None:
@@ -365,7 +398,7 @@ class ReverseGeocodeVpTreeSimd:
             return coords, cities
 
 
-class ReverseGeocodeKdLearn:
+class ReverseGeocodeKdLearn(ReverseGeocodeBase):
     def __init__(self, path: Optional[str] = None) -> None:
         from sklearn.neighbors import KDTree
 
@@ -411,7 +444,7 @@ class ReverseGeocodeKdLearn:
             return coords, cities
 
 
-class ReverseGeocodeBruteEuclidic:
+class ReverseGeocodeBruteEuclidic(ReverseGeocodeBase):
     def __init__(self, path: Optional[str] = None) -> None:
         if path is None:
             path = files(__package__).joinpath("data/cities1000.txt.xz")
@@ -450,7 +483,7 @@ class ReverseGeocodeBruteEuclidic:
             return coords, cities
 
 
-class ReverseGeocodeBruteHaversine:
+class ReverseGeocodeBruteHaversine(ReverseGeocodeBase):
     radius = earth_radii["Spherical Earth Approx. of Radius (RE)"]  # see opt_geocoding.py
 
     def __init__(self, path: Optional[str] = None) -> None:
@@ -487,7 +520,7 @@ class ReverseGeocodeBruteHaversine:
             return coords, cities
 
 
-class ReverseGeocodeBallHaversine:
+class ReverseGeocodeBallHaversine(ReverseGeocodeBase):
     radius = earth_radii["Spherical Earth Approx. of Radius (RE)"]  # see opt_geocoding.py
 
     def __init__(self, path: Optional[str] = None) -> None:
